@@ -1,5 +1,5 @@
 --- a/package/openwrt/custom.conf	2020-08-20 00:45:38.000000000 +0800
-+++ b/package/openwrt/custom.conf	2022-09-09 22:41:37.713638321 +0800
++++ b/package/openwrt/custom.conf	2022-09-12 11:10:45.920608175 +0800
 @@ -11,4 +11,58 @@
  # log-num 2
  
@@ -9,7 +9,7 @@
 +# bogus-nxdomain [ip/subnet]
 +
 +#conf-file /etc/smartdns/anti-ad-for-smartdns.conf
-+cache-size 65535
++cache-size 1024
 +cache-persist yes
 +max-reply-ip-num 1
 +response-mode first-ping

@@ -355,6 +355,27 @@ config service 'NAScn6'
 	option password 'sqmshcn110'
 	option ip_source 'web'
 	option ip_url 'http://192.168.1.8:8080/ip6.html'
+
+config service 'SSRcn'
+	option service_name 'dynu.com'
+	option enabled '1'
+	option lookup_host 'ssrcn.ddnsfree.com'
+	option domain 'ssrcn.ddnsfree.com'
+	option username 'sqmshcn@gmail.com'
+	option password 'sqmshcn110'
+	option ip_source 'web'
+	option ip_url 'http://members.3322.org/dyndns/getip'
+
+config service 'SSRcn6'
+	option service_name 'dynu.com'
+	option enabled '1'
+	option lookup_host 'ssrcn.ddnsfree.com'
+	option use_ipv6 '1'
+	option domain 'ssrcn.ddnsfree.com'
+	option username 'sqmshcn@gmail.com'
+	option password 'sqmshcn110'
+	option ip_source 'web'
+	option ip_url 'http://192.168.1.110/ip6.html'
 EOF
 }
 
