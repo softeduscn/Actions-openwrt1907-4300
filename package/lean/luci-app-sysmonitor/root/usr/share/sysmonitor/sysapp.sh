@@ -256,7 +256,7 @@ cat > /etc/smartdns/custom.conf <<EOF
 # bogus-nxdomain [ip/subnet]
 
 #conf-file /etc/smartdns/anti-ad-for-smartdns.conf
-cache-size 65535
+cache-size 1024
 cache-persist yes
 max-reply-ip-num 1
 response-mode first-ping

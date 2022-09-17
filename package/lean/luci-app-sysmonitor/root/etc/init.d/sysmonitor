@@ -23,13 +23,6 @@ start()
 	else
 		sysctl -w net.ipv4.tcp_congestion_control=cubic
 	fi
-	if [ -f "/etc/init.d/smartdns" ]; then
-		if [ $(uci get sysmonitor.sysmonitor.smartdnsAD) == 1 ];  then
-			sed -i s/".*$conf-file.*$"/"conf-file \/etc\/smartdns\/anti-ad-for-smartdns.conf"/ /etc/smartdns/custom.conf
-		else
-			sed -i s/".*$conf-file.*$"/"#conf-file \/etc\/smartdns\/anti-ad-for-smartdns.conf"/ /etc/smartdns/custom.conf	
-		fi
-	fi
 	if [ -f "/etc/init.d/ddns" ]; then
 		if [ $(uci get sysmonitor.sysmonitor.ddns) == 1 ];  then
 			/etc/init.d/ddns enable
@@ -41,6 +34,30 @@ start()
 		else
 			/etc/init.d/ddns disable
 			/etc/init.d/ddns stop
+		fi
+	fi
+	if [ -f "/etc/init.d/smartdns" ]; then
+		if [ $(uci get sysmonitor.sysmonitor.smartdnsAD) == 1 ];  then
+			sed -i s/".*$conf-file.*$"/"conf-file \/etc\/smartdns\/anti-ad-for-smartdns.conf"/ /etc/smartdns/custom.conf
+		else
+			sed -i s/".*$conf-file.*$"/"#conf-file \/etc\/smartdns\/anti-ad-for-smartdns.conf"/ /etc/smartdns/custom.conf	
+		fi
+		[ -f /tmp/smartdns.cache ] && rm /tmp/smartdns.cache
+		if [ $(uci get sysmonitor.sysmonitor.smartdns) == 1 ];  then
+			uci set smartdns.@smartdns[0].enabled='1'
+			uci set smartdns.@smartdns[0].seconddns_enabled='0'
+			uci set smartdns.@smartdns[0].port='53'
+			uci commit smartdns
+			if [ $(ps |grep smartdns|grep -v grep|wc -l) -gt 0 ] ; then
+				/etc/init.d/smartdns restart
+			else
+				/etc/init.d/smartdns start
+			fi
+		else
+			uci set smartdns.@smartdns[0].enabled='0'
+			uci set smartdns.@smartdns[0].seconddns_enabled='0'
+			uci commit smartdns
+			[ "$(ps |grep smartdns |grep -v grep |wc -l)" -gt 0 ] && /etc/init.d/smartdns stop
 		fi
 	fi
 	$APP_PATH/sysapp.sh getip
