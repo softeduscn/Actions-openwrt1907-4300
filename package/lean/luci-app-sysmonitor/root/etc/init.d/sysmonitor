@@ -48,6 +48,8 @@ start()
 			uci set smartdns.@smartdns[0].seconddns_enabled='0'
 			uci set smartdns.@smartdns[0].port='53'
 			uci commit smartdns
+			sed -i '/address/d' /etc/smartdns/custom.conf
+			echo "address /NAS/19.168.1.8" >> /etc/smartdns/custom.conf
 			if [ $(ps |grep smartdns|grep -v grep|wc -l) -gt 0 ] ; then
 				/etc/init.d/smartdns restart
 			else
