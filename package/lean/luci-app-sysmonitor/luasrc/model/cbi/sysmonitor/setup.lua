@@ -3,7 +3,7 @@ local m, s
 local global = 'sysmonitor'
 local uci = luci.model.uci.cursor()
 ip = luci.sys.exec("/usr/share/sysmonitor/sysapp.sh getip")
-m = Map("sysmonitor",translate("System Monitor"))
+m = Map("sysmonitor",translate("System Status"))
 m:append(Template("sysmonitor/status"))
 
 n = Map("sysmonitor",translate("System Services"))
