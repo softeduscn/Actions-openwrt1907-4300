@@ -227,7 +227,6 @@ getgateway() {
 }
 
 smartdns() {
-
 if [ -f "/etc/init.d/smartdns" ]; then
 vpnip=$(uci get sysmonitor.sysmonitor.vpnip)
 uci set smartdns.@smartdns[0].port='53'
@@ -288,9 +287,35 @@ fi
 fi
 }
 
+service_smartdns() {
+	if [ "$(ps |grep smartdns|grep -v grep|wc -l)" == 0 ]; then
+		uci set sysmonitor.sysmonitor.smartdns=1
+	else
+		uci set sysmonitor.sysmonitor.smartdns=0
+	fi
+	uci commit sysmonitor
+	/etc/init.d/sysmonitor restart
+}
+
+service_ddns() {
+	if [ "$(ps |grep ddns|grep -v grep|wc -l)" == 0 ]; then
+		uci set sysmonitor.sysmonitor.ddns=1
+	else
+		uci set sysmonitor.sysmonitor.ddns=0
+	fi
+	uci commit sysmonitor
+	/etc/init.d/sysmonitor restart
+}
+
 arg1=$1
 shift
 case $arg1 in
+service_smartdns)
+	service_smartdns
+	;;
+service_ddns)
+	service_ddns
+	;;
 smartdns)
 	smartdns
 	;;

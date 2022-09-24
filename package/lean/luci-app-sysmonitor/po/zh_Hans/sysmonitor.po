@@ -73,6 +73,12 @@ msgstr "上传文件列表"
 msgid "Upload file to '/tmp/upload/'"
 msgstr "将文件上传到'/tmp/upload/'"
 
+msgid "System Status"
+msgstr "系统状态"
+
+msgid "System Services"
+msgstr "系统服务"
+
 msgid "System Settings"
 msgstr "系统配置"
 

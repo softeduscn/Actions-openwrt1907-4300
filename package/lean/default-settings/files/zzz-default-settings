@@ -5,6 +5,8 @@
 
 #uci set luci.main.lang='en'
 #uci commit luci
+/etc/init.d/ddns disable
+/etc/init.d/ddns stop
 
 uci set fstab.@global[0].anon_mount='1'
 uci commit fstab

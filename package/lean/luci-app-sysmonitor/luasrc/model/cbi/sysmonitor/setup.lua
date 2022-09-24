@@ -6,15 +6,13 @@ ip = luci.sys.exec("/usr/share/sysmonitor/sysapp.sh getip")
 m = Map("sysmonitor",translate("System Monitor"))
 m:append(Template("sysmonitor/status"))
 
-s = m:section(TypedSection, "sysmonitor", translate("System Settings"))
-s.anonymous = true
-s.description ='<style>.button1 {-webkit-transition-duration: 0.4s;transition-duration: 0.4s;padding: 1px 16px;text-align: center;background-color: white;color: black;border: 2px solid #4CAF50;border-radius:5px;}.button1:hover {background-color: #4CAF50;color: white;}.button1 {font-size: 13px;}</style><button class="button1"><a href="http://'..ip..':7681" target="_blank">' .. translate("OpenTerminal") .. '</a></button>'
+n = Map("sysmonitor",translate("System Services"))
+n:append(Template("sysmonitor/service"))
 
+s = n:section(TypedSection, "sysmonitor", translate("System Settings"))
+s.anonymous = true
 
 o=s:option(Flag,"enable", translate("Enable"))
-o.rmempty=false
-
-o=s:option(Flag,"bbr", translate("BBR Enable"))
 o.rmempty=false
 
 if nixio.fs.access("/etc/init.d/ipsec") then
@@ -36,11 +34,15 @@ if nixio.fs.access("/etc/init.d/smartdns") then
 o=s:option(Flag,"smartdns", translate("SmartDNS Enable"))
 o.rmempty=false
 end
+--[[
+o=s:option(Flag,"bbr", translate("BBR Enable"))
+o.rmempty=false
 
 if nixio.fs.access("/etc/init.d/smartdns") then
 o=s:option(Flag,"smartdnsAD", translate("SmartDNS-AD Enable"))
 o.rmempty=false
 end
+]]--
 
 o = s:option(Value, "homeip", translate("Home IP Address"))
 --o.description = translate("IP for Home(192.168.1.1)")
@@ -57,4 +59,4 @@ o = s:option(Value, translate("firmware"), translate("Firmware Address"))
 o.default = "https://github.com/softeduscn/Actions-openwrt1907-4300/releases/download/WNDR-4300/openwrt-ar71xx-nand-wndr4300-squashfs-sysupgrade.tar"
 o.rmempty = false
 
-return m
+return m, n
