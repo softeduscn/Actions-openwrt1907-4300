@@ -93,7 +93,8 @@ function action_service_status()
 		ddns = '<font color=red>DDNS<a href="/cgi-bin/luci/admin/services/ddns" target="_blank">--></a></font>'
 	else
 		ddns = '<font color=green>DDNS<a href="/cgi-bin/luci/admin/services/ddns" target="_blank">--></a></font>'
-	end	tmp = tonumber(luci.sys.exec("ps |grep smartdns|grep -v grep|wc -l"))
+	end
+	tmp = tonumber(luci.sys.exec("ps |grep smartdns|grep -v grep|wc -l"))
 	if ( tmp == 0 ) then
 		smartdns = ' <font color=red>SmartDNS<a href="/cgi-bin/luci/admin/services/smartdns" target="_blank">--></a></font>'
 	else
