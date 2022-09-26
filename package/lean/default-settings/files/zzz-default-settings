@@ -196,6 +196,7 @@ config interface 'wghome'
 	list addresses '192.168.8.120/24'
 	list addresses '192.168.7.120/24'
 	list addresses '192.168.6.120/24'
+	option listen_port '51820'
 
 config wireguard_wghome
 	option description 'ALiCloud'
