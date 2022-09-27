@@ -298,7 +298,7 @@ service_smartdns() {
 }
 
 service_ddns() {
-	if [ "$(ps |grep ddns|grep -v grep|wc -l)" == 0 ]; then
+	if [ "$(ps |grep dynamic_dns|grep -v grep|wc -l)" == 0 ]; then
 		uci set sysmonitor.sysmonitor.ddns=1
 	else
 		uci set sysmonitor.sysmonitor.ddns=0

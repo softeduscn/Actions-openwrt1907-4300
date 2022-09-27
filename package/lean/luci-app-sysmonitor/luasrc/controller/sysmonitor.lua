@@ -88,7 +88,7 @@ function action_pptp_status()
 end
 
 function action_service_status()
-	tmp = tonumber(luci.sys.exec("ps |grep ddns|grep -v grep|wc -l"))
+	tmp = tonumber(luci.sys.exec("ps |grep dynamic_dns|grep -v grep|wc -l"))
 	if ( tmp == 0 ) then
 		ddns = '<font color=red>DDNS<a href="/cgi-bin/luci/admin/services/ddns" target="_blank">--></a></font>'
 	else
