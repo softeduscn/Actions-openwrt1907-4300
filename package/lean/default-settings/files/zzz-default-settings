@@ -113,11 +113,11 @@ cat /etc/config/firewall | grep wghome > /dev/null
 if [ $? -ne 0 ];then
 cat >> /etc/config/firewall <<EOF
 config rule
-	option dest_port '51820'
+	option dest_port '58888'
 	option src 'wan'
 	option name 'Wireguard'
 	option target 'ACCEPT'
-	option src_port '51820'
+	option src_port '58888'
 
 config zone
 	option name 'wghome'
@@ -163,12 +163,12 @@ config interface 'wghome'
 	list addresses '192.168.8.120/24'
 	list addresses '192.168.7.120/24'
 	list addresses '192.168.6.120/24'
-	option listen_port '51820'
+	option listen_port '58888'
 
 config wireguard_wghome
 	option description 'ALiCloud'
 	option persistent_keepalive '25'
-	option endpoint_port '51820'
+	option endpoint_port '58888'
 	option endpoint_host '47.100.183.141'
 	option public_key 'GWLcAE1Of7H1iolrSRAK1FYGB5dhwbEMTZvEJxoZYGA='
 	list allowed_ips '192.168.9.0/24'
