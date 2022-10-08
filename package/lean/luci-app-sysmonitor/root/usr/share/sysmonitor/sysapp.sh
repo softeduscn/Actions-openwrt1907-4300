@@ -58,7 +58,7 @@ ssr() {
 	fi
 	if [ ! "$ssrp" == '' ]; then
 		ssrpstatus='Stopped'
-		[ "$(ps -w |grep passwall |grep -v grep |wc -l)" -gt 0 ] && ssrpstatus='Running'
+		[ "$(ps -w |grep /etc/passwall |grep -v grep |wc -l)" -gt 0 ] && ssrpstatus='Running'
 	fi
 	if [ "$ssr" == '' -a "$ssrp" == '' ]; then
 		echo "No VPN Server installed."
@@ -114,6 +114,8 @@ do
 		let "i=n+3"
 		tmp='sed -n '$i'p '$file
 		tmp=$($tmp|cut -d' ' -f6)
+		[ "$tmp" == "hour," ] && tmp="hours,"
+		[ "$tmp" == "minute," ] && tmp="minutes,"	
 		case $tmp in
 		hours,)
 			let "s=s-1"
@@ -136,6 +138,7 @@ done
 users=$(cat $file|grep peer|wc -l)
 let 'users=users-1'
 [ "$users" -lt 1 ] && users='None'
+#[ "$users" -eq 0 ] && users='None'
 echo $users
 }
 
@@ -183,7 +186,7 @@ ad_switch() {
 }
 
 switch_vpn() {
-	if [ "$(ps -w|grep passwall|grep -v grep|wc -l)" == 0 ]; then
+	if [ "$(ps -w|grep /etc/passwall|grep -v grep|wc -l)" == 0 ]; then
 		if [ -f "/etc/init.d/passwall" ]; then
 			uci set passwall.@global[0].enabled=1
 			uci commit passwall
@@ -222,22 +225,9 @@ getip6() {
 	echo $ip
 }
 
-getgateway() {
-	uci get network.wan.gateway
-}
-
 smartdns() {
 if [ -f "/etc/init.d/smartdns" ]; then
 vpnip=$(uci get sysmonitor.sysmonitor.vpnip)
-uci set smartdns.@smartdns[0].port='53'
-uci set smartdns.@smartdns[0].seconddns_enabled='0'
-if [ $(uci get sysmonitor.sysmonitor.smartdns) == 1 ];  then
-	uci set smartdns.@smartdns[0].enabled='1'
-else
-	uci set smartdns.@smartdns[0].enabled='0'
-fi
-uci commit smartdns
-
 cat > /etc/smartdns/custom.conf <<EOF
 # Add custom settings here.
 
@@ -279,10 +269,16 @@ EOF
 
 gateway=$(uci get network.wan.gateway)
 [ "$vpnip" == "$gateway" ] && sed -i s/".*$server $vpnip"/"server $vpnip"/ /etc/smartdns/custom.conf
+
 if [ $(uci get sysmonitor.sysmonitor.smartdns) == 1 ];  then
-	/etc/init.d/smartdns start
+	if [ "$(ps |grep smartdns|grep -v grep|wc -l)" == 0 ]; then
+		/etc/init.d/smartdns start
+	else
+		/etc/init.d/smartdns restart
+	fi
+
 else
-	[ "$(ps|grep smartdns|grep -v grep|wc -l)" -gt 0 ] && /etc/init.d/smartdns stop
+	[ "$(ps |grep smartdns|grep -v grep|wc -l)" != 0 ] && /etc/init.d/smartdns stop >/dev/null 2>&1
 fi
 fi
 }
@@ -307,9 +303,23 @@ service_ddns() {
 	/etc/init.d/sysmonitor restart
 }
 
+vpns() {
+	if [ "$(uci get sysmonitor.sysmonitor.vpnip)" == '192.168.1.110' ]; then
+		vpnip='192.168.1.8'
+	else
+		vpnip='192.168.1.110'
+	fi
+	uci set sysmonitor.sysmonitor.vpnip=$vpnip
+	uci commit sysmonitor
+	touch /tmp/sysmonitor
+}
+
 arg1=$1
 shift
 case $arg1 in
+vpns)
+	vpns
+	;;
 service_smartdns)
 	service_smartdns
 	;;
@@ -324,9 +334,6 @@ getip)
 	;;
 getip6)
 	getip6
-	;;
-getgateway)
-	getgateway
 	;;
 agh)
 	agh
@@ -352,9 +359,4 @@ ad_switch)
 firmware)
 	firmware $1
 	;;
-test)
-	echo $1
-
-	;;
-
 esac

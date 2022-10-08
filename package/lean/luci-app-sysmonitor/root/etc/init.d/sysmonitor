@@ -18,11 +18,6 @@ stop()
 start()
 {
 	[ $(ps |grep ttyd|grep -v grep|wc -l) == 0 ] && /usr/bin/ttyd -6 /bin/login &	
-	if [ $(uci get sysmonitor.sysmonitor.bbr) == 1 ];  then
-		sysctl -w net.ipv4.tcp_congestion_control=bbr
-	else
-		sysctl -w net.ipv4.tcp_congestion_control=cubic
-	fi
 	if [ -f "/etc/init.d/ddns" ]; then
 		if [ $(uci get sysmonitor.sysmonitor.ddns) == 1 ];  then
 			/etc/init.d/ddns enable
@@ -46,25 +41,14 @@ start()
 		if [ $(uci get sysmonitor.sysmonitor.smartdns) == 1 ];  then
 			uci set smartdns.@smartdns[0].enabled='1'
 			uci set smartdns.@smartdns[0].seconddns_enabled='0'
-			uci set smartdns.@smartdns[0].port='6053'
+			uci set smartdns.@smartdns[0].port=$(uci get sysmonitor.sysmonitor.smartdnsPORT)
 			uci commit smartdns
 			sed -i '/address/d' /etc/smartdns/custom.conf
-			echo "address /NAS/19.168.1.8" >> /etc/smartdns/custom.conf
-			if [ $(ps |grep smartdns|grep -v grep|wc -l) -gt 0 ] ; then
-				/etc/init.d/smartdns restart
-			else
-				/etc/init.d/smartdns start
-			fi
+			echo "address /NAS/192.168.1.8" >> /etc/smartdns/custom.conf
+			/etc/init.d/smartdns start
+
 		else
-			uci set smartdns.@smartdns[0].enabled='0'
-			uci set smartdns.@smartdns[0].seconddns_enabled='0'
-			uci commit smartdns
-			[ "$(ps |grep smartdns |grep -v grep |wc -l)" -gt 0 ] && /etc/init.d/smartdns stop
-			uci del dhcp.@dnsmasq[0].server
-			uci set dhcp.@dnsmasq[0].port=''
-			uci set dhcp.@dnsmasq[0].noresolv=0
-			uci commit dhcp
-			/etc/init.d/dnsmasq restart
+			/etc/init.d/smartdns stop >/dev/null 2>&1
 		fi
 	fi
 	$APP_PATH/sysapp.sh getip
@@ -73,5 +57,3 @@ start()
 	$APP_PATH/sysmonitor.sh &
 #	touch /tmp/smartdns.patch
 }
-
-

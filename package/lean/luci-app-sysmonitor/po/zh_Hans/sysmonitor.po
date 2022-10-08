@@ -52,6 +52,9 @@ msgstr "路由根目录："
 msgid "Log"
 msgstr "日志"
 
+msgid "Clear logs"
+msgstr "清空日志"
+
 msgid "Remove"
 msgstr "移除"
 
@@ -106,11 +109,11 @@ msgstr "光猫出口地址(如：192.168.1.1)"
 msgid "IP for VPN Server(192.168.1.110)"
 msgstr "VPN服务器地址(如：192.168.1.110)"
 
-msgid "BBR Enable"
-msgstr "BBR 启用"
-
 msgid "SmartDNS Enable"
 msgstr "SmartDNS 启用"
+
+msgid "SmartDNS PORT"
+msgstr "SmartDNS 端口"
 
 msgid "SmartDNS-AD Enable"
 msgstr "SmartDNS-AD 启用"

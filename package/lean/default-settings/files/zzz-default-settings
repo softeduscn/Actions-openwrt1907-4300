@@ -23,8 +23,9 @@ uci set system.@system[0].zonename=Asia/Shanghai
 uci commit system
 
 #uci set dhcp.@dnsmasq[0].rebind_protection='0'
-uci del_list dhcp.lan.dhcp_option='44,192.168.1.8'
+uci del dhcp.lan.dhcp_option
 uci add_list dhcp.lan.dhcp_option='44,192.168.1.8'
+uci add_list dhcp.lan.dhcp_option='6,119.29.29.29,223.5.5.5,114.114.114.114,192.168.1.110,192.168.1.8'
 uci set dhcp.lan.ra='relay'
 uci set dhcp.lan.dhcpv6='relay'
 uci set dhcp.lan.ndp='relay'
@@ -127,7 +128,7 @@ config zone
 	option network 'wghome'
 
 config forwarding
-	option dest 'lan'
+	option dest 'wan'
 	option src 'wghome'
 EOF
 fi
@@ -166,28 +167,22 @@ config interface 'wghome'
 	option listen_port '58888'
 
 config wireguard_wghome
-	option description 'ALiCloud'
-	option persistent_keepalive '25'
-	option endpoint_port '58888'
-	option endpoint_host '47.100.183.141'
-	option public_key 'GWLcAE1Of7H1iolrSRAK1FYGB5dhwbEMTZvEJxoZYGA='
-	list allowed_ips '192.168.9.0/24'
-	option route_allowed_ips '1'
-
-config wireguard_wghome
 	option public_key 'RuCdaOHKPDf2c2kihx2dzBhEDKZnbnhP1N4aUBkzw3A='
 	option route_allowed_ips '1'
 	list allowed_ips '192.168.8.0/24'
+	option description 'Iphone8Plus'
 
 config wireguard_wghome
 	option public_key 'HkRSRzDMks74AmFQlnByouVNR6E/o5I+j033QqF1UyI='
 	option route_allowed_ips '1'
 	list allowed_ips '192.168.7.0/24'
+	option description 'Iphone6'
 
 config wireguard_wghome
 	option public_key 'ql9g9ngGQMq9cyBaun5QjnyROyh7Cu4zJ9eZwFM6UGw='
 	option route_allowed_ips '1'
 	list allowed_ips '192.168.6.0/24'
+	option description 'Iphone8'
 
 config device
 	option name 'eth0.2'
@@ -276,6 +271,39 @@ config service 'DynuVAIO'
 	option ip_url 'http://members.3322.org/dyndns/getip'
 	option interface 'lan'
 
+config service 'DynuHOME'
+	option service_name 'dynu.com'
+	option enabled '1'
+	option lookup_host 'homecn.ddnsfree.com'
+	option domain 'homecn.ddnsfree.com'
+	option username 'sqmshcn'
+	option password 'dynuddns'
+	option ip_source 'web'
+	option ip_url 'http://members.3322.org/dyndns/getip'
+	option interface 'lan'
+
+config service 'DynuNAS'
+	option service_name 'dynu.com'
+	option enabled '1'
+	option lookup_host 'nascn.ddnsfree.com'
+	option domain 'nascn.ddnsfree.com'
+	option username 'sqmshcn'
+	option password 'dynuddns'
+	option ip_source 'web'
+	option ip_url 'http://members.3322.org/dyndns/getip'
+	option interface 'lan'
+
+config service 'DynuSSR'
+	option service_name 'dynu.com'
+	option enabled '1'
+	option lookup_host 'ssrcn.ddnsfree.com'
+	option domain 'ssrcn.ddnsfree.com'
+	option username 'sqmshcn'
+	option password 'dynuddns'
+	option ip_source 'web'
+	option ip_url 'http://members.3322.org/dyndns/getip'
+	option interface 'lan'
+
 config service 'DynuVAIO6'
 	option service_name 'dynu.com'
 	option enabled '1'
@@ -286,17 +314,6 @@ config service 'DynuVAIO6'
 	option ip_source 'web'
 	option ip_url 'http://192.168.1.120/ip6.html'
 	option use_ipv6 '1'
-	option interface 'lan'
-
-config service 'DynuHOME'
-	option service_name 'dynu.com'
-	option enabled '1'
-	option lookup_host 'homecn.ddnsfree.com'
-	option domain 'homecn.ddnsfree.com'
-	option username 'sqmshcn'
-	option password 'dynuddns'
-	option ip_source 'web'
-	option ip_url 'http://members.3322.org/dyndns/getip'
 	option interface 'lan'
 
 config service 'DynuHOME6'
@@ -311,17 +328,6 @@ config service 'DynuHOME6'
 	option use_ipv6 '1'
 	option interface 'lan'
 
-config service 'DynuNAS'
-	option service_name 'dynu.com'
-	option enabled '1'
-	option lookup_host 'nascn.ddnsfree.com'
-	option domain 'nascn.ddnsfree.com'
-	option username 'sqmshcn'
-	option password 'dynuddns'
-	option ip_source 'web'
-	option ip_url 'http://members.3322.org/dyndns/getip'
-	option interface 'lan'
-
 config service 'DynuNAS6'
 	option service_name 'dynu.com'
 	option enabled '1'
@@ -332,17 +338,6 @@ config service 'DynuNAS6'
 	option password 'dynuddns'
 	option ip_source 'web'
 	option ip_url 'http://192.168.1.8:8080/ip6.html'
-	option interface 'lan'
-
-config service 'DynuSSR'
-	option service_name 'dynu.com'
-	option enabled '1'
-	option lookup_host 'ssrcn.ddnsfree.com'
-	option domain 'ssrcn.ddnsfree.com'
-	option username 'sqmshcn'
-	option password 'dynuddns'
-	option ip_source 'web'
-	option ip_url 'http://members.3322.org/dyndns/getip'
 	option interface 'lan'
 
 config service 'DynuSSR6'
@@ -360,11 +355,10 @@ EOF
 }
 
 if [ -f "/etc/init.d/smartdns" ]; then
-uci set smartdns.@smartdns[0].enabled='0'
-uci set smartdns.@smartdns[0].seconddns_enabled='0'
-uci set smartdns.@smartdns[0].port='53'
-uci commit smartdns
-
+	uci set smartdns.@smartdns[0].enabled='1'
+	uci set smartdns.@smartdns[0].seconddns_enabled='0'
+	uci set smartdns.@smartdns[0].port='6053'
+	uci commit smartdns
 cat > /etc/smartdns/custom.conf <<EOF
 # Add custom settings here.
 
