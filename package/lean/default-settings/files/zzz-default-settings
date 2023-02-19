@@ -5,8 +5,8 @@
 
 #uci set luci.main.lang='en'
 #uci commit luci
-/etc/init.d/ddns disable
-/etc/init.d/ddns stop
+#/etc/init.d/ddns disable
+#/etc/init.d/ddns stop
 
 uci set fstab.@global[0].anon_mount='1'
 uci commit fstab
@@ -23,9 +23,8 @@ uci set system.@system[0].zonename=Asia/Shanghai
 uci commit system
 
 #uci set dhcp.@dnsmasq[0].rebind_protection='0'
-uci del dhcp.lan.dhcp_option
-uci add_list dhcp.lan.dhcp_option='44,192.168.1.8'
-uci add_list dhcp.lan.dhcp_option='6,119.29.29.29,223.5.5.5,114.114.114.114,192.168.1.110,192.168.1.8'
+#uci del dhcp.lan.dhcp_option
+#uci add_list dhcp.lan.dhcp_option='44,192.168.1.220'
 uci set dhcp.lan.ra='relay'
 uci set dhcp.lan.dhcpv6='relay'
 uci set dhcp.lan.ndp='relay'
@@ -53,7 +52,7 @@ uci set network.wan.proto='static'
 uci set network.wan.ipaddr='192.168.1.120'
 uci set network.wan.netmask='255.255.255.0'
 uci set network.wan.gateway=$homeip
-uci del_list network.wan.dns=$homeip
+uci del network.wan.dns
 uci add_list network.wan.dns=$homeip
 uci set network.wan.ifname='eth0.2'
 uci set network.wan.force_link='1'
@@ -68,7 +67,10 @@ uci set network.lan.ip6assign='64'
 uci set network.lan.ipaddr='192.168.88.1'
 uci set network.lan.delegate='1'
 uci set network.lan.force_link='1'
-
+uci del network.lan.dns
+uci add_list network.lan.dns='119.29.29.29'
+uci add_list network.lan.dns='223.5.5.5'
+uci add_list network.lan.dns='114.114.114.114'
 uci commit network
 
 uci set wireless.radio0.noscan=1
@@ -80,6 +82,7 @@ uci set wireless.default_radio0.ssid='VAIOHOME'
 uci set wireless.default_radio0.key='sonyvaiotz13w'
 uci set wireless.default_radio0.encryption='psk-mixed'
 uci set wireless.default_radio0.disabled='1'
+uci set wireless.default_radio0.disassoc_low_ack='0'
 
 uci set wireless.radio1.noscan=1
 uci set wireless.radio1.country="CN"
@@ -90,24 +93,30 @@ uci set wireless.default_radio1.ssid='VAIOHOME'
 uci set wireless.default_radio1.key='sonyvaiotz13w'
 uci set wireless.default_radio1.encryption='psk-mixed'
 uci set wireless.default_radio1.disabled='1'
+uci set wireless.default_radio1.disassoc_low_ack='0'
 uci commit wireless
 
-uci set firewall.@defaults[0].flow_offloading='1'
+uci set firewall.@defaults[0].flow_offloading='0'
+uci set firewall.@defaults[0].synflood_protect='1'
 uci set firewall.@defaults[0].input='ACCEPT'
 uci set firewall.@defaults[0].output='ACCEPT'
-uci set firewall.@defaults[0].forward='ACCEPT'
+uci set firewall.@defaults[0].forward='REJECT'
 uci set firewall.@zone[0].input='ACCEPT'
 uci set firewall.@zone[0].output='ACCEPT'
 uci set firewall.@zone[0].forward='ACCEPT'
 uci set firewall.@zone[1].input='ACCEPT'
 uci set firewall.@zone[1].output='ACCEPT'
-uci set firewall.@zone[1].forward='ACCEPT'
+uci set firewall.@zone[1].forward='REJECT'
 uci commit firewall
 
 cat >> /etc/config/dhcp <<EOF
 config domain
 	option name 'NAS'
-	option ip '192.168.1.8'
+	option ip '192.168.1.220'
+
+config domain
+	option name 'VPN'
+	option ip '192.168.1.110'
 EOF
 
 cat /etc/config/firewall | grep wghome > /dev/null
@@ -159,29 +168,26 @@ config switch_vlan
 
 config interface 'wghome'
 	option proto 'wireguard'
-	option private_key '+J85E4lpGJFoMbiPUsVloQGbyNHIfN1xlnymCg0qj0k='
-	list addresses '192.168.9.120/24'
-	list addresses '192.168.8.120/24'
-	list addresses '192.168.7.120/24'
-	list addresses '192.168.6.120/24'
+	option private_key 'iCwIGHnty/G/FhFNm0SQFCFTA6xtRc8mLjKCZ5YCvEU='
+	list addresses '192.168.9.120'
 	option listen_port '58888'
 
 config wireguard_wghome
 	option public_key 'RuCdaOHKPDf2c2kihx2dzBhEDKZnbnhP1N4aUBkzw3A='
 	option route_allowed_ips '1'
-	list allowed_ips '192.168.8.0/24'
+	list allowed_ips '192.168.9.11'
 	option description 'Iphone8Plus'
 
 config wireguard_wghome
 	option public_key 'HkRSRzDMks74AmFQlnByouVNR6E/o5I+j033QqF1UyI='
 	option route_allowed_ips '1'
-	list allowed_ips '192.168.7.0/24'
-	option description 'Iphone6'
+	list allowed_ips '192.168.9.12'
+	option description 'Iphone7'
 
 config wireguard_wghome
 	option public_key 'ql9g9ngGQMq9cyBaun5QjnyROyh7Cu4zJ9eZwFM6UGw='
 	option route_allowed_ips '1'
-	list allowed_ips '192.168.6.0/24'
+	list allowed_ips '192.168.9.13'
 	option description 'Iphone8'
 
 config device
@@ -244,6 +250,27 @@ config perm_rule
 EOF
 }
 
+[ -f /etc/lighttpd/lighttpd.conf ] && {
+file='/etc/lighttpd/lighttpd.conf'
+sed -i  's|".php", ".pl", ".fcgi"|".php", ".pl", ".fcgi", ".lua"|' $file
+sed -i  's|#server.port|server.port|' $file
+}
+
+[ -f /etc/lighttpd/conf.d/30-cgi.conf ] && {
+sed -i '/".cgi" => "\/usr\/bin\/perl"/i\                               ".lua" => "\/usr\/bin\/lua",' /etc/lighttpd/conf.d/30-cgi.conf
+sed -i '/".cgi" => "\/usr\/bin\/perl"/i\                               ".php" => "\/usr\/bin\/php-cgi",' /etc/lighttpd/conf.d/30-cgi.conf
+cat >> /etc/lighttpd/conf.d/30-cgi.conf <<EOF
+cgi.assign += ( "/cgi-bin/luci" => "",
+                "/cgi-bin/cgi-backup" => "",
+                "/cgi-bin/cgi-download" => "",
+                "/cgi-bin/cgi-exec" => "",
+                "/cgi-bin/cgi-upload" => "" )
+				
+server.username := ""
+server.groupname := ""
+EOF
+}
+
 [ -f /etc/init.d/ddns ] && {
 cat > /etc/config/ddns <<EOF
 config ddns 'global'
@@ -259,6 +286,7 @@ config service 'ChangeipECS'
 	option ip_source 'web'
 	option ip_url 'http://47.100.183.141/ip.php'
 	option interface 'lan'
+	option force_dnstcp '1'
 
 config service 'DynuVAIO'
 	option service_name 'dynu.com'
@@ -270,6 +298,7 @@ config service 'DynuVAIO'
 	option ip_source 'web'
 	option ip_url 'http://members.3322.org/dyndns/getip'
 	option interface 'lan'
+	option force_dnstcp '1'
 
 config service 'DynuHOME'
 	option service_name 'dynu.com'
@@ -281,6 +310,7 @@ config service 'DynuHOME'
 	option ip_source 'web'
 	option ip_url 'http://members.3322.org/dyndns/getip'
 	option interface 'lan'
+	option force_dnstcp '1'
 
 config service 'DynuNAS'
 	option service_name 'dynu.com'
@@ -292,6 +322,7 @@ config service 'DynuNAS'
 	option ip_source 'web'
 	option ip_url 'http://members.3322.org/dyndns/getip'
 	option interface 'lan'
+	option force_dnstcp '1'
 
 config service 'DynuSSR'
 	option service_name 'dynu.com'
@@ -303,6 +334,7 @@ config service 'DynuSSR'
 	option ip_source 'web'
 	option ip_url 'http://members.3322.org/dyndns/getip'
 	option interface 'lan'
+	option force_dnstcp '1'
 
 config service 'DynuVAIO6'
 	option service_name 'dynu.com'
@@ -315,6 +347,7 @@ config service 'DynuVAIO6'
 	option ip_url 'http://192.168.1.120/ip6.html'
 	option use_ipv6 '1'
 	option interface 'lan'
+	option force_dnstcp '1'
 
 config service 'DynuHOME6'
 	option service_name 'dynu.com'
@@ -327,6 +360,7 @@ config service 'DynuHOME6'
 	option ip_url 'http://192.168.1.119/ip6.html'
 	option use_ipv6 '1'
 	option interface 'lan'
+	option force_dnstcp '1'
 
 config service 'DynuNAS6'
 	option service_name 'dynu.com'
@@ -337,8 +371,9 @@ config service 'DynuNAS6'
 	option username 'sqmshcn'
 	option password 'dynuddns'
 	option ip_source 'web'
-	option ip_url 'http://192.168.1.8:8080/ip6.html'
+	option ip_url 'http://192.168.1.220:8080/ip6.html'
 	option interface 'lan'
+	option force_dnstcp '1'
 
 config service 'DynuSSR6'
 	option service_name 'dynu.com'
@@ -351,13 +386,14 @@ config service 'DynuSSR6'
 	option ip_source 'web'
 	option ip_url 'http://192.168.1.110/ip6.html'
 	option interface 'lan'
+	option force_dnstcp '1'
 EOF
 }
 
 if [ -f "/etc/init.d/smartdns" ]; then
 	uci set smartdns.@smartdns[0].enabled='1'
 	uci set smartdns.@smartdns[0].seconddns_enabled='0'
-	uci set smartdns.@smartdns[0].port='6053'
+	uci set smartdns.@smartdns[0].port='53'
 	uci commit smartdns
 cat > /etc/smartdns/custom.conf <<EOF
 # Add custom settings here.
@@ -375,7 +411,9 @@ cat > /etc/smartdns/custom.conf <<EOF
 # List of hosts that supply bogus NX domain results 
 # bogus-nxdomain [ip/subnet]
 
-cache-size 65535
+#conf-file \/etc\/smartdns\/anti-ad-for-smartdns.conf
+dnsmasq-lease-file /var/dhcp.leases
+cache-size 1024
 cache-persist yes
 max-reply-ip-num 1
 response-mode first-ping
@@ -386,15 +424,12 @@ rr-ttl-max 600
 rr-ttl-reply-max 60
 rr-ttl 600
 local-ttl 60
-
 speed-check-mode ping,tcp:80,tcp:443
 
-#server $vpnip
 server 119.29.29.29
 server 114.114.114.114
 server 223.5.5.5
-
-address /NAS/192.168.1.8
+server 2400:3200::1
 EOF
 fi
 

@@ -10,21 +10,14 @@ STOP=15
 NAME=sysmonitor
 APP_PATH=/usr/share/$NAME
 
-stop()
-{
-	set sysmonitor.sysmonitor.enable=0
-	set commit sysmonitor
-}
 start()
 {
-	[ $(ps |grep ttyd|grep -v grep|wc -l) == 0 ] && /usr/bin/ttyd -6 /bin/login &	
+	[ $(ps |grep ttyd|grep -v grep|wc -l) == 0 ] && /usr/bin/ttyd -6 /bin/login &
 	if [ -f "/etc/init.d/ddns" ]; then
 		if [ $(uci get sysmonitor.sysmonitor.ddns) == 1 ];  then
 			/etc/init.d/ddns enable
 			if [ $(ps |grep ddns|grep -v grep|wc -l) == 0 ]; then
 				/etc/init.d/ddns start
-			else
-				/etc/init.d/ddns restart
 			fi
 		else
 			/etc/init.d/ddns disable
@@ -32,19 +25,14 @@ start()
 		fi
 	fi
 	if [ -f "/etc/init.d/smartdns" ]; then
-		if [ $(uci get sysmonitor.sysmonitor.smartdnsAD) == 1 ];  then
-			sed -i s/".*$conf-file.*$"/"conf-file \/etc\/smartdns\/anti-ad-for-smartdns.conf"/ /etc/smartdns/custom.conf
-		else
-			sed -i s/".*$conf-file.*$"/"#conf-file \/etc\/smartdns\/anti-ad-for-smartdns.conf"/ /etc/smartdns/custom.conf	
-		fi
+		sed -i s/"#conf-file"/"conf-file"/ /etc/smartdns/custom.conf
+		[ $(uci get sysmonitor.sysmonitor.smartdnsAD) == 0 ] && sed -i s/"conf-file"/"#conf-file"/ /etc/smartdns/custom.conf
 		[ -f /tmp/smartdns.cache ] && rm /tmp/smartdns.cache
 		if [ $(uci get sysmonitor.sysmonitor.smartdns) == 1 ];  then
 			uci set smartdns.@smartdns[0].enabled='1'
 			uci set smartdns.@smartdns[0].seconddns_enabled='0'
 			uci set smartdns.@smartdns[0].port=$(uci get sysmonitor.sysmonitor.smartdnsPORT)
 			uci commit smartdns
-			sed -i '/address/d' /etc/smartdns/custom.conf
-			echo "address /NAS/192.168.1.8" >> /etc/smartdns/custom.conf
 			/etc/init.d/smartdns start
 
 		else
@@ -52,8 +40,9 @@ start()
 		fi
 	fi
 	$APP_PATH/sysapp.sh getip
-	set sysmonitor.sysmonitor.enable=1
-	set commit sysmonitor
+	$APP_PATH/sysapp.sh setdns
+#	uci set sysmonitor.sysmonitor.enable=1
+#	uci commit sysmonitor
 	$APP_PATH/sysmonitor.sh &
 #	touch /tmp/smartdns.patch
 }

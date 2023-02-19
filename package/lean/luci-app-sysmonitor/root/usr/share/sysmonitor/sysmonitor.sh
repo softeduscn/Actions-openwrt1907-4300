@@ -1,8 +1,6 @@
 #!/bin/bash
 
-if [ "$(ps -w | grep -v grep | grep sysmonitor.sh | wc -l)" -gt 2 ]; then
-	exit 1
-fi
+[ "$(ps | grep sysmonitor.sh | grep -v grep | wc -l)" -gt 2 ] && exit
 
 sleep_unit=1
 NAME=sysmonitor
@@ -29,7 +27,11 @@ ping_url() {
 }
 
 curl_url() {
-	result=$(curl -s --connect-timeout 1 $1)
+	url=$1"/.getvpn.php"
+	for i in $( seq 1 2 ); do
+		result=$(curl -s --connect-timeout 1 $url)
+		[ -n "$result" ] && break
+	done
 	echo $result
 }
 
@@ -62,6 +64,40 @@ check_ip() {
 	fi
 }
 
+setdns() {
+	d=$(date "+%Y-%m-%d %H:%M:%S")
+	echo $d": gateway="$homeip >> /var/log/sysmonitor.log
+	uci set network.wan.gateway=$homeip
+	uci set network.wan.dns="$(uci get network.lan.dns)"
+	uci commit network
+	ifup wan
+	ifup wan6
+	/etc/init.d/odhcpd restart
+}
+
+selvpn() {
+	vpnlist=$(uci get sysmonitor.sysmonitor.vpn)
+	if [ ! -n "$vpnlist" ]; then
+		uci set sysmonitor.sysmonitor.vpn='192.168.1.110'
+		uci commit sysmonitor
+		vpnlist=$(uci get sysmonitor.sysmonitor.vpn)
+	fi
+	vpnip=$1
+	k=0
+	for n in $vpnlist
+	do
+		if [ "$k" == 1 ]; then
+			vpnip=$n
+			break
+		fi
+		[ "$vpnip" == "$n" ] && {
+			k=1
+			vpnip=$(echo $vpnlist|cut -d' ' -f1)
+		}
+	done
+	echo $vpnip
+}
+
 [ ! $(uci get dhcp.lan.ra) == "relay" ] && touch /tmp/relay
 [ ! $(uci get dhcp.lan.ndp) == "relay" ] && touch /tmp/relay
 [ ! $(uci get dhcp.lan.dhcpv6) == "relay" ] && touch /tmp/relay
@@ -72,8 +108,10 @@ check_ip() {
 	uci commit dhcp
 	/etc/init.d/odhcpd restart &
 }
+
 sysctl -w net.ipv4.tcp_congestion_control=bbr >/dev/null
-gateway=$(check_ip $(uci get network.wan.gateway))
+
+gateway=$(uci get network.wan.gateway)
 d=$(date "+%Y-%m-%d %H:%M:%S")
 echo $d": Sysmonitor is up." >> /var/log/sysmonitor.log
 echo $d": gateway="$gateway >> /var/log/sysmonitor.log
@@ -88,61 +126,45 @@ while [ "1" == "1" ]; do #死循环
 	}
 	homeip=$(uci_get_by_name $NAME sysmonitor homeip 0)
 	vpnip=$(uci_get_by_name $NAME sysmonitor vpnip 0)
-	gateway=$(check_ip $(uci get network.wan.gateway))
+	gateway=$(uci get network.wan.gateway)
 #	status=$(ping_url $vpnip)
-	if [ "$vpnip" == "192.168.1.110" ]; then
-		url=$vpnip"/ip.html"
-	else
-		url=$vpnip":8080/ip.html"
-	fi
-	status=$(curl_url $url)
+#	if [ "$status" == 0 ]; then
+	status=$(curl_url $vpnip)
 	if [ ! -n "$status" ]; then
-		if [ "$gateway" == "$vpnip" ]; then
-			d=$(date "+%Y-%m-%d %H:%M:%S")
-			echo $d": gateway="$homeip >> /var/log/sysmonitor.log
-			uci set network.wan.gateway=$homeip
-			uci del network.wan.dns
-			uci add_list network.wan.dns='119.29.29.29'
-			uci add_list network.wan.dns='223.5.5.5'
-			uci add_list network.wan.dns='114.114.114.114'
-			uci commit network
-			ifup wan
-			ifup wan6
-			/etc/init.d/odhcpd restart
-			$APP_PATH/sysapp.sh smartdns
+		vpnip=$(selvpn $(uci get sysmonitor.sysmonitor.vpnip))
+		status=$(curl_url $vpnip)
+		if [ ! -n "$status" ];then
+			[ "$(uci get network.wan.gateway)" != "$homeip" ] && setdns
+		else
+			uci set sysmonitor.sysmonitor.vpnip=$vpnip
+			uci commit sysmonitor
 		fi
+	fi
+	if [ ! -n "$status" ]; then
+		[ "$gateway" == "$vpnip" ] && setdns
 	else
 		if [ ! "$gateway" == "$vpnip" ]; then
 			d=$(date "+%Y-%m-%d %H:%M:%S")
 			echo $d": VPN-gateway="$vpnip >> /var/log/sysmonitor.log
 			uci set network.wan.gateway=$vpnip
-			uci del network.wan.dns
-			uci add_list network.wan.dns=$vpnip
+#			uci del network.wan.dns
+#			uci add_list network.wan.dns=$vpnip
 			uci commit network
 			ifup wan
 			ifup wan6
 			/etc/init.d/odhcpd restart
-			$APP_PATH/sysapp.sh smartdns
 		fi
 	fi
 	num=0
-	while [ $num -le 10 ]; do
+	check_time=$(uci_get_by_name $NAME sysmonitor time 10)
+	[ "$check_time" -le 3 ] && check_time=3
+	while [ $num -le $check_time ]; do
 		sleep $sleep_unit
 		if [ $(uci_get_by_name $NAME sysmonitor enable 0) == 0 ]; then
+			setdns
 			d=$(date "+%Y-%m-%d %H:%M:%S")
-			echo $d": gateway="$homeip >> /var/log/sysmonitor.log
 			echo $d": Sysmonitor is down." >> /var/log/sysmonitor.log
-			uci set network.wan.gateway=$homeip
-#			sed -i '/list dns/d' /etc/config/network
-			uci del network.wan.dns
-			uci add_list network.wan.dns='119.29.29.29'
-			uci add_list network.wan.dns='223.5.5.5'
-			uci add_list network.wan.dns='114.114.114.114'
-			uci commit network
-			ifup wan
-			ifup wan6
-			/etc/init.d/odhcpd restart
-			$APP_PATH/sysapp.sh smartdns
+			killall sysmonitor.sh &
 			exit 0
 		fi
 		let num=num+sleep_unit

@@ -2,7 +2,6 @@
 local m, s
 local global = 'sysmonitor'
 local uci = luci.model.uci.cursor()
-ip = luci.sys.exec("/usr/share/sysmonitor/sysapp.sh getip")
 m = Map("sysmonitor",translate("System Status"))
 m:append(Template("sysmonitor/status"))
 
@@ -47,18 +46,21 @@ o.rmempty=false
 end
 ]]--
 
+o = s:option(DynamicList, "dns", translate("DNS List"))
+o.datatype = "or(host)"
+o.rmempty = false
+
+o = s:option(DynamicList, "vpn", translate("VPN List"))
+o.datatype = "or(host)"
+o.rmempty = false
+
+o = s:option(Value, "time", translate("Check time"))
+o.rmempty = false
+
 o = s:option(Value, "homeip", translate("Home IP Address"))
 --o.description = translate("IP for Home(192.168.1.1)")
 o:value("192.168.1.1")
 o.default = "192.168.1.1"
-o.datatype = "or(host)"
-o.rmempty = false
-
-o = s:option(Value, "vpnip", translate("VPN IP Address"))
-o:value("192.168.1.110",translate("SSR (192.168.1.110)"))
-o:value("192.168.1.8",translate("Passwall(192.168.1.8"))
-o.default = "192.168.1.110"
---o.description = translate("IP for VPN Server(192.168.1.110)")
 o.datatype = "or(host)"
 o.rmempty = false
 
@@ -68,4 +70,3 @@ o.default = "https://github.com/softeduscn/Actions-openwrt1907-4300/releases/dow
 o.rmempty = false
 
 return m, n
-

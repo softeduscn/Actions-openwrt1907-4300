@@ -54,7 +54,7 @@ ssr() {
 	[ -f "/etc/init.d/passwall" ] && ssrp='Passwall '
 	if [ ! "$ssr" == '' ]; then
 		ssrstatus='Stopped'
-		[ "$(ps -w |grep ssrplus |grep -v grep |wc -l)" -gt 0 ] && ssrstatus='Running'
+		[ "$(ps -w |grep /etc/ssrplus |grep -v grep |wc -l)" -gt 0 ] && ssrstatus='Running'
 	fi
 	if [ ! "$ssrp" == '' ]; then
 		ssrpstatus='Stopped'
@@ -135,10 +135,8 @@ do
 	fi
 	s=$n
 done
-users=$(cat $file|grep peer|wc -l)
-let 'users=users-1'
-[ "$users" -lt 1 ] && users='None'
-#[ "$users" -eq 0 ] && users='None'
+users=$(cat $file|sed "/GWLcAE1Of.*$/d"|grep peer|wc -l)
+#[ "$users" == 0 ] && users='None'
 echo $users
 }
 
@@ -193,7 +191,7 @@ switch_vpn() {
 			/etc/init.d/passwall restart &
 		fi
 		echo "Passwall"
-	elif [ "$(ps -w|grep ssrplus|grep -v grep|wc -l)" == 0 ]; then	
+	elif [ "$(ps -w|grep /etc/ssrplus|grep -v grep|wc -l)" == 0 ]; then	
 		[ -f "/etc/init.d/shadowsocksr" ] && /etc/init.d/shadowsocksr restart &
 		echo "Shadowsocksr"
 	fi
@@ -225,62 +223,15 @@ getip6() {
 	echo $ip
 }
 
-smartdns() {
-if [ -f "/etc/init.d/smartdns" ]; then
-vpnip=$(uci get sysmonitor.sysmonitor.vpnip)
-cat > /etc/smartdns/custom.conf <<EOF
-# Add custom settings here.
-
-# set log level
-# log-level [level], level=fatal, error, warn, notice, info, debug
-# log-level error
-
-# log-size k,m,g
-# log-size 128k
-
-# log-file /var/log/smartdns.log
-# log-num 2
-
-# List of hosts that supply bogus NX domain results 
-# bogus-nxdomain [ip/subnet]
-
-#conf-file /etc/smartdns/anti-ad-for-smartdns.conf
-cache-size 1024
-cache-persist yes
-max-reply-ip-num 1
-response-mode first-ping
-prefetch-domain yes
-tcp-idle-time 120
-rr-ttl-min 60
-rr-ttl-max 600
-rr-ttl-reply-max 60
-rr-ttl 600
-local-ttl 60
-
-speed-check-mode ping,tcp:80,tcp:443
-
-#server $vpnip
-server 119.29.29.29
-server 114.114.114.114
-server 223.5.5.5
-
-address /NAS/192.168.1.8
-EOF
-
-gateway=$(uci get network.wan.gateway)
-[ "$vpnip" == "$gateway" ] && sed -i s/".*$server $vpnip"/"server $vpnip"/ /etc/smartdns/custom.conf
-
-if [ $(uci get sysmonitor.sysmonitor.smartdns) == 1 ];  then
-	if [ "$(ps |grep smartdns|grep -v grep|wc -l)" == 0 ]; then
-		/etc/init.d/smartdns start
+gethost() {
+	if [ -n "$1" ]; then
+		vpn=$1		
 	else
-		/etc/init.d/smartdns restart
+		vpn=$(uci get sysmonitor.sysmonitor.vpnip)
 	fi
-
-else
-	[ "$(ps |grep smartdns|grep -v grep|wc -l)" != 0 ] && /etc/init.d/smartdns stop >/dev/null 2>&1
-fi
-fi
+	host=$(nslookup $vpn|grep name|cut -d'=' -f2|cut -d' ' -f2)
+	[ ! -n "$host" ] && host=$vpn
+	echo $host
 }
 
 service_smartdns() {
@@ -288,6 +239,16 @@ service_smartdns() {
 		uci set sysmonitor.sysmonitor.smartdns=1
 	else
 		uci set sysmonitor.sysmonitor.smartdns=0
+	fi
+	uci commit sysmonitor
+	/etc/init.d/sysmonitor restart
+}
+
+service_sys() {
+	if [ "$(uci get sysmonitor.sysmonitor.enable)" == 0 ]; then
+		uci set sysmonitor.sysmonitor.enable=1
+	else
+		uci set sysmonitor.sysmonitor.enable=0
 	fi
 	uci commit sysmonitor
 	/etc/init.d/sysmonitor restart
@@ -304,19 +265,72 @@ service_ddns() {
 }
 
 vpns() {
-	if [ "$(uci get sysmonitor.sysmonitor.vpnip)" == '192.168.1.110' ]; then
-		vpnip='192.168.1.8'
-	else
-		vpnip='192.168.1.110'
+	vpnlist=$(uci get sysmonitor.sysmonitor.vpn)
+	if [ ! -n "$vpnlist" ]; then
+		uci set sysmonitor.sysmonitor.vpn='192.168.1.110'
+		uci commit sysmonitor
+		vpnlist=$(uci get sysmonitor.sysmonitor.vpn)
 	fi
+	vpnip=$(uci get sysmonitor.sysmonitor.vpnip)
+	k=0
+	for n in $vpnlist
+	do
+		if [ "$k" == 1 ]; then
+			vpnip=$n
+			break
+		fi
+		[ "$vpnip" == "$n" ] && {
+			k=1
+			vpnip=$(echo $vpnlist|cut -d' ' -f1)
+		}
+	done
+	[ "$k" == 0 ] && vpnip=$(echo $vpnlist|cut -d' ' -f1)
 	uci set sysmonitor.sysmonitor.vpnip=$vpnip
 	uci commit sysmonitor
 	touch /tmp/sysmonitor
 }
 
+setdns() {
+	dnslist=$(uci get sysmonitor.sysmonitor.dns)
+	if [ "$dnslist" != "$(uci get network.lan.dns)" ]; then
+		d=$(date "+%Y-%m-%d %H:%M:%S")
+		echo $d": Set DNS "$dnslist >> /var/log/sysmonitor.log
+		uci del network.wan.dns
+		uci del network.lan.dns
+		for n in $dnslist
+		do 		
+			uci add_list network.wan.dns=$n
+			uci add_list network.lan.dns=$n
+		done
+		uci commit network
+		ifup lan
+		ifup wan
+		ifup wan6
+		/etc/init.d/odhcpd restart
+	fi
+}
+
+refresh() {
+arg=$(ps | grep sysmonitor.sh | grep -v grep | wc -l)
+if [ $arg == 0 ]; then
+	/etc/init.d/sysmonitor restart
+elif [ $arg == 1 ]; then
+	touch /tmp/sysmonitor
+else
+	killall sysmonitor.sh
+	/etc/init.d/sysmonitor restart
+fi
+}
+
 arg1=$1
 shift
 case $arg1 in
+refresh)
+	refresh
+	;;
+setdns)
+	setdns
+	;;
 vpns)
 	vpns
 	;;
@@ -326,14 +340,17 @@ service_smartdns)
 service_ddns)
 	service_ddns
 	;;
-smartdns)
-	smartdns
+service_sys)
+	service_sys
 	;;
 getip)
 	getip
 	;;
 getip6)
 	getip6
+	;;
+gethost)
+	gethost $1
 	;;
 agh)
 	agh
